@@ -1,0 +1,2069 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2026 火神祭｜星火島 Open Stage 即時控台系統 (主持 & 音控同步)</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', 'Noto Sans TC', sans-serif;
+      background-color: #09090b;
+      color: #fafafa;
+      overflow-x: hidden;
+    }
+    .flame-gradient {
+      background: linear-gradient(135deg, #f97316 0%, #ef4444 50%, #dc2626 100%);
+    }
+    .card-glow-active {
+      box-shadow: 0 0 30px -5px rgba(249, 115, 22, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+    }
+    .card-glow-next {
+      box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.25), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+    }
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+    .animate-pulse-slow {
+      animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #18181b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #3f3f46;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #52525b;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-zinc-950 text-zinc-100 selection:bg-orange-500 selection:text-white">
+
+  <!-- Top Navigation & Live Status Bar -->
+  <header class="sticky top-0 z-30 bg-zinc-900/95 backdrop-blur-md border-b border-zinc-800 px-3 sm:px-6 py-2.5">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <!-- Brand / Event Name -->
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl flame-gradient flex items-center justify-center shadow-lg shadow-orange-600/30 shrink-0">
+          <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 23a7.5 7.5 0 0 1-5.138-12.963C8.204 8.774 11.5 6.5 11 1.5c6 4 9 8 3 14 1 0 2.5 0 5-2.47.27.773.5 1.604.5 2.47A7.5 7.5 0 0 1 12 23z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-black text-base sm:text-lg tracking-tight text-white">2026 火神祭｜星火島自由舞台</h1>
+            <span id="liveBadge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse-slow"></span>
+              <span id="syncStatusText">雲端即時連線中</span>
+            </span>
+          </div>
+          <p class="text-[11px] text-zinc-400 hidden sm:block">
+            Google 表單後台直連 · 最後更新：<span id="lastSyncTime" class="text-zinc-300 font-mono">--:--:--</span>
+            （<span id="countdownText" class="text-orange-400 font-mono">10s</span> 後自動刷新）
+          </p>
+        </div>
+      </div>
+
+      <!-- View Switcher & Quick Controls -->
+      <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+        <!-- View Mode Tabs -->
+        <div class="inline-flex rounded-lg bg-zinc-950 p-1 border border-zinc-800">
+          <button id="modeSplitBtn" type="button" class="px-2.5 py-1 rounded-md text-xs font-bold transition-all bg-orange-600 text-white shadow">
+            雙欄控台
+          </button>
+          <button id="modeMcBtn" type="button" class="px-2.5 py-1 rounded-md text-xs font-bold transition-all text-zinc-400 hover:text-white">
+            🎤 主持大字版
+          </button>
+          <button id="modeSoundBtn" type="button" class="px-2.5 py-1 rounded-md text-xs font-bold transition-all text-zinc-400 hover:text-white">
+            🎧 音控專注版
+          </button>
+        </div>
+
+        <!-- Auto Refresh Toggle -->
+        <button id="toggleAutoSyncBtn" type="button" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition">
+          <svg class="w-3.5 h-3.5 text-orange-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          <span id="autoSyncBtnLabel">自動刷新: 10秒</span>
+        </button>
+
+        <!-- Manual Sync Now -->
+        <button id="syncNowBtn" type="button" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-orange-600 hover:bg-orange-500 text-white shadow transition active:scale-95">
+          <span>立即刷新</span>
+        </button>
+
+        <!-- One-Click Download Standalone HTML -->
+        <button id="downloadSelfBtn" type="button" onclick="downloadStandaloneHtml()" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition active:scale-95" title="下載成獨立網頁檔，可傳給音控或放手機直接開">
+          <span>⬇ 下載網頁檔</span>
+        </button>
+
+        <!-- Settings / Sheet Link Modal Trigger -->
+        <button id="openSettingsBtn" type="button" title="資料來源與新增現場報名" class="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Secondary Filter & Stage Progress Bar -->
+  <div class="bg-zinc-900/60 border-b border-zinc-800/80 px-3 sm:px-6 py-2">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <!-- Date Filter Pills -->
+      <div class="flex items-center gap-1.5 overflow-x-auto py-0.5">
+        <span class="text-xs font-semibold text-zinc-400 mr-1 shrink-0">場次篩選：</span>
+        <button data-date="10/24" class="date-filter-btn px-3 py-1 rounded-full text-xs font-bold bg-orange-500 text-white shadow-sm transition shrink-0">
+          🔥 今晚 10/24 (六) <span id="count1024" class="ml-1 px-1.5 py-0.2 bg-black/30 rounded-full text-[10px]">0</span>
+        </button>
+        <button data-date="10/25" class="date-filter-btn px-3 py-1 rounded-full text-xs font-bold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition shrink-0">
+          10/25 (日) <span id="count1025" class="ml-1 px-1.5 py-0.2 bg-black/30 rounded-full text-[10px]">0</span>
+        </button>
+        <button data-date="10/26" class="date-filter-btn px-3 py-1 rounded-full text-xs font-bold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition shrink-0">
+          10/26 (一) <span id="count1026" class="ml-1 px-1.5 py-0.2 bg-black/30 rounded-full text-[10px]">0</span>
+        </button>
+        <button data-date="ALL" class="date-filter-btn px-3 py-1 rounded-full text-xs font-bold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition shrink-0">
+          全部報名 <span id="countAll" class="ml-1 px-1.5 py-0.2 bg-black/30 rounded-full text-[10px]">0</span>
+        </button>
+      </div>
+
+      <!-- Quick Queue Controls & Timer -->
+      <div class="flex items-center gap-2 ml-auto flex-wrap">
+        <!-- Next Call Number Counter Badge -->
+        <div class="flex items-center gap-1.5 bg-emerald-950/60 border border-emerald-500/30 rounded-lg px-2.5 py-1">
+          <span class="text-[11px] text-emerald-300 font-semibold">目前發號進度</span>
+          <span id="nextCallNumIndicator" class="font-mono text-xs font-black text-emerald-400">下一號 #1</span>
+        </div>
+
+        <!-- Stage Stopwatch for Current Performer -->
+        <div class="flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1">
+          <span class="text-[11px] text-zinc-400">演出計時</span>
+          <span id="stageTimerDisplay" class="font-mono text-sm font-bold text-amber-400">00:00</span>
+          <button id="timerStartPauseBtn" type="button" class="text-[11px] px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold">開始</button>
+          <button id="timerResetBtn" type="button" class="text-[11px] px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400">歸零</button>
+        </div>
+
+        <!-- Add Walk-in Performer Button -->
+        <button id="addWalkInBtn" type="button" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition">
+          <span>＋ 現場臨時加報</span>
+        </button>
+
+        <!-- Open Google Sheet Raw -->
+        <a href="https://docs.google.com/spreadsheets/d/15yGxi0ylBga2GRC6-OeWLvxXX8roJpjpFnJpz5Zsao6w/edit" id="rawSheetLink" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition">
+          <span>開啟原始表單</span>
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Registration Notification Banner (Hidden by default) -->
+  <div id="newRegToast" class="hidden bg-gradient-to-r from-orange-600 via-amber-600 to-orange-600 text-white px-4 py-2 text-center text-xs sm:text-sm font-bold shadow-lg flex items-center justify-center gap-3">
+    <span>🔔 偵測到表單有新報名資料已自動匯入隊列！</span>
+    <button id="dismissToastBtn" type="button" class="px-2 py-0.5 rounded bg-black/25 hover:bg-black/40 text-xs">知道了</button>
+  </div>
+
+  <!-- Main Workspace Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6">
+
+    <!-- HERO SECTION: CURRENT PERFORMER + NEXT UP -->
+    <section id="heroDeck" class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-stretch">
+
+      <!-- LEFT / MAIN: CURRENT ON STAGE (NOW PERFORMING) -->
+      <div id="currentCardContainer" class="lg:col-span-7 bg-zinc-900 border-2 border-orange-500/80 rounded-2xl p-4 sm:p-6 flex flex-col justify-between card-glow-active relative overflow-hidden">
+        <!-- Top Status Header -->
+        <div>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-orange-500 text-white shadow">
+                <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                NOW ON STAGE · 當前演出者
+              </span>
+              <span id="currentCallNumBadge" class="text-sm font-mono font-black px-3 py-1 rounded-lg bg-emerald-500 text-zinc-950 shadow">
+                叫號 #1
+              </span>
+              <span id="currentOrderBadge" class="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-zinc-800 text-orange-300 border border-zinc-700">
+                #1 / 6
+              </span>
+            </div>
+
+            <!-- Prev / Next Stage Stepper -->
+            <div class="flex items-center gap-1.5">
+              <button id="prevPerformerBtn" type="button" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition disabled:opacity-40">
+                ← 上一組
+              </button>
+              <button id="completeAndNextBtn" type="button" class="px-4 py-1.5 rounded-xl text-xs sm:text-sm font-black flame-gradient hover:opacity-95 text-white shadow-lg shadow-orange-600/30 transition active:scale-95 flex items-center gap-1.5">
+                <span>演出完畢・切換下一位</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Performer Main Identity -->
+          <div class="mb-5">
+            <div class="flex flex-wrap items-baseline gap-3">
+              <h2 id="currentStageName" class="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
+                載入中...
+              </h2>
+              <span id="currentRealName" class="text-base sm:text-xl font-bold text-zinc-400"></span>
+            </div>
+
+            <!-- Meta Tags: People, IG, Props, Fuel, Date -->
+            <div id="currentMetaTags" class="flex flex-wrap items-center gap-2 mt-3">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- MC SCRIPT BOX (Prominent for Host on Stage) -->
+          <div id="mcSectionCurrent" class="mb-5 bg-zinc-950/90 border border-zinc-800 rounded-xl p-4 sm:p-5">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-orange-400 flex items-center gap-1.5">
+                🎤 主持人介紹詞 / 串場重點（可大字直接唸）
+              </span>
+              <button id="copyCurrentIntroBtn" type="button" class="text-[11px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition">
+                複製介紹詞
+              </button>
+            </div>
+            <div id="currentIntroText" class="text-lg sm:text-2xl font-bold text-zinc-100 leading-relaxed whitespace-pre-line">
+              --
+            </div>
+            <div id="currentMcHelperPrompt" class="mt-3 pt-3 border-t border-zinc-800/80 text-xs sm:text-sm text-amber-300/90 font-medium">
+              <!-- Standard Cue Line -->
+            </div>
+          </div>
+        </div>
+
+        <!-- SOUND TECH / MUSIC CONTROL BOX -->
+        <div id="soundSectionCurrent" class="bg-zinc-950 border border-zinc-800 rounded-xl p-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+            <span class="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+              🎧 音控音樂資訊 (SOUND CUE)
+            </span>
+            <div class="flex items-center gap-2">
+              <button id="toggleCurrentPhoneBtn" type="button" class="text-[11px] font-bold px-2.5 py-1 rounded-lg border transition">
+                📱 切換參賽者手機播放
+              </button>
+              <span id="currentMusicTypeBadge" class="text-[11px] font-bold px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                音檔連結
+              </span>
+            </div>
+          </div>
+
+          <div id="currentMusicContent" class="space-y-3">
+            <!-- Populated by JS: Filename, Direct Link, Preview Player, or Search Song Name -->
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: NEXT UP (ON DECK / 下一位準備) -->
+      <div id="nextCardContainer" class="lg:col-span-5 bg-zinc-900/90 border-2 border-amber-500/60 rounded-2xl p-4 sm:p-6 flex flex-col justify-between card-glow-next relative">
+        <div>
+          <!-- Header -->
+          <div class="flex items-center justify-between gap-2 mb-4 flex-wrap">
+            <div class="flex items-center gap-2">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                ⏭ NEXT UP · 下一位準備 (浸油待命)
+              </span>
+              <span id="nextCallNumBadge" class="text-xs font-mono font-black px-2.5 py-0.5 rounded bg-emerald-500 text-zinc-950">
+                叫號 #2
+              </span>
+              <span id="nextOrderBadge" class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">
+                #2
+              </span>
+            </div>
+            <span id="nextCheckInBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full"></span>
+          </div>
+
+          <!-- Next Performer Identity -->
+          <div class="mb-4">
+            <div class="flex flex-wrap items-baseline gap-2.5">
+              <h3 id="nextStageName" class="text-2xl sm:text-4xl font-black text-amber-200 tracking-tight">
+                --
+              </h3>
+              <span id="nextRealName" class="text-sm sm:text-lg font-bold text-zinc-400"></span>
+            </div>
+            <div id="nextMetaTags" class="flex flex-wrap items-center gap-1.5 mt-2.5"></div>
+          </div>
+
+          <!-- Next Performer Intro Preview -->
+          <div class="mb-4 bg-zinc-950/80 border border-zinc-800/90 rounded-xl p-3.5">
+            <div class="text-[11px] font-bold text-amber-400/90 mb-1.5 flex items-center justify-between">
+              <span>🎤 下一位主持介紹預覽（提前順稿）</span>
+              <span id="nextPropHint" class="text-zinc-400"></span>
+            </div>
+            <div id="nextIntroText" class="text-sm sm:text-base font-medium text-zinc-200 leading-relaxed whitespace-pre-line line-clamp-5">
+              --
+            </div>
+          </div>
+        </div>
+
+        <!-- Next Performer Sound Pre-load -->
+        <div class="space-y-3">
+          <div class="bg-zinc-950 border border-zinc-800 rounded-xl p-3.5">
+            <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
+              <span class="text-xs font-bold text-cyan-400 flex items-center gap-1">
+                🎧 音控預載下一首 (PRE-CUE)
+              </span>
+              <div class="flex items-center gap-1.5">
+                <button id="toggleNextPhoneBtn" type="button" class="text-[10px] font-bold px-2 py-0.5 rounded border transition">
+                  📱 參賽者手機播放
+                </button>
+                <span id="nextMusicTypeBadge" class="text-[10px] font-bold px-2 py-0.5 rounded bg-zinc-800 text-zinc-300"></span>
+              </div>
+            </div>
+            <div id="nextMusicContent" class="space-y-2"></div>
+          </div>
+
+          <!-- Third in line (On-Deck #2) quick peek -->
+          <div id="afterNextPeek" class="bg-zinc-950/60 border border-zinc-800/60 rounded-xl px-3.5 py-2.5 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2 truncate">
+              <span class="px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 font-bold shrink-0">再下一位預告</span>
+              <span id="afterNextName" class="font-bold text-zinc-200 truncate">--</span>
+            </div>
+            <span id="afterNextMusicHint" class="text-zinc-400 shrink-0 ml-2 font-mono text-[11px]"></span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- FULL QUEUE & LIVE CHECK-IN / REORDER TABLE -->
+    <section class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
+      <div class="p-4 sm:px-6 border-b border-zinc-800 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 class="text-base sm:text-lg font-black text-white flex items-center gap-2">
+            <span>📋 演出順序與現場報到叫號控管清單</span>
+            <span id="queueSummaryBadge" class="text-xs font-normal px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-300"></span>
+          </h3>
+          <p class="text-xs text-zinc-400 mt-0.5">
+            不確定誰先來時，音控/場控可直接對到場者點擊「➕ 報到領號」（自動依序發給 #1, #2, #3... 叫號），也可隨時手動輸入調整叫號或切換「📱 參賽者手機播放」。
+          </p>
+        </div>
+
+        <!-- Search & Filter Controls -->
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="relative">
+            <input id="searchInput" type="text" placeholder="搜尋表演者、本名、IG、歌名..." class="w-48 sm:w-60 bg-zinc-950 border border-zinc-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-orange-500" />
+            <svg class="w-3.5 h-3.5 text-zinc-500 absolute left-2.5 top-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+          </div>
+
+          <label class="inline-flex items-center gap-1.5 text-xs text-zinc-300 bg-zinc-950 border border-zinc-800 px-2.5 py-1.5 rounded-lg cursor-pointer select-none">
+            <input id="onlyCheckedInToggle" type="checkbox" class="rounded bg-zinc-800 border-zinc-600 text-emerald-500 focus:ring-0" />
+            <span>僅排入已領號報到者上台</span>
+          </label>
+
+          <label class="inline-flex items-center gap-1.5 text-xs text-zinc-300 bg-zinc-950 border border-zinc-800 px-2.5 py-1.5 rounded-lg cursor-pointer select-none">
+            <input id="hideDoneToggle" type="checkbox" class="rounded bg-zinc-800 border-zinc-600 text-orange-500 focus:ring-0" />
+            <span>隱藏已演完</span>
+          </label>
+
+          <button id="sortCheckedInFirstBtn" type="button" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 transition">
+            依報到狀態排序
+          </button>
+        </div>
+      </div>
+
+      <!-- Responsive Queue List -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-zinc-800 bg-zinc-950/60 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+              <th class="py-2.5 px-3 sm:px-4 w-36">報到叫號 / 順序調整</th>
+              <th class="py-2.5 px-3">現場報到狀態</th>
+              <th class="py-2.5 px-3">表演者 / 聯絡人</th>
+              <th class="py-2.5 px-3 hidden md:table-cell">參加場次</th>
+              <th class="py-2.5 px-3">🎧 音控音樂 & 播放方式</th>
+              <th class="py-2.5 px-3 hidden lg:table-cell">🎤 主持介紹摘要</th>
+              <th class="py-2.5 px-3 text-right">操作</th>
+            </tr>
+          </thead>
+          <tbody id="performerTableBody" class="divide-y divide-zinc-800/70 text-sm">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: SETTINGS & WALK-IN PERFORMER -->
+  <div id="settingsModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <h3 class="text-lg font-black text-white">⚙️ 表單後台串接設定 & 現場加報</h3>
+        <button id="closeSettingsBtn" type="button" class="text-zinc-400 hover:text-white p-1">✕</button>
+      </div>
+
+      <!-- Google Sheet Live Sync Config -->
+      <div class="space-y-2">
+        <label class="block text-xs font-bold text-zinc-300">Google 試算表 ID 或網址（已自動綁定今晚表單）</label>
+        <input id="sheetIdInput" type="text" value="15yGxi0ylBga2GRC6-OeWLvxX8roJpjpFnJpz5Zsao6w" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-zinc-200 font-mono focus:outline-none focus:border-orange-500" />
+        <p class="text-[11px] text-zinc-400 leading-relaxed">
+          系統會透過 Google Visualization JSONP 介面每 <span id="modalIntervalText">10</span> 秒自動抓取最新表單回覆（免 API Key、不跳轉頁面）。若現場網路不穩，也會自動保留已載入的報名與報到狀態。
+        </p>
+        <div class="flex items-center gap-2 pt-1">
+          <span class="text-xs text-zinc-400">自動刷新頻率：</span>
+          <select id="refreshIntervalSelect" class="bg-zinc-950 border border-zinc-700 rounded-lg px-2.5 py-1 text-xs text-white">
+            <option value="5">每 5 秒（極速）</option>
+            <option value="10" selected>每 10 秒（推薦）</option>
+            <option value="20">每 20 秒</option>
+            <option value="30">每 30 秒</option>
+            <option value="0">手動刷新</option>
+          </select>
+          <button id="saveSheetConfigBtn" type="button" class="ml-auto px-3 py-1 rounded-lg text-xs font-bold bg-orange-600 hover:bg-orange-500 text-white">
+            套用設定
+          </button>
+        </div>
+      </div>
+
+      <!-- Manual Walk-in Form -->
+      <form id="walkInForm" class="space-y-3 border-t border-zinc-800 pt-4">
+        <h4 class="text-sm font-bold text-amber-400">＋ 新增現場臨時報名 (Walk-in)</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-[11px] text-zinc-400 mb-1">演出名稱 / 藝名 *</label>
+            <input id="walkInStageName" type="text" required placeholder="例如：小火龍" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-white" />
+          </div>
+          <div>
+            <label class="block text-[11px] text-zinc-400 mb-1">聯絡人姓名 & 道具</label>
+            <input id="walkInContact" type="text" placeholder="王小明｜火棍 / 雙扇" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-white" />
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-[11px] text-zinc-400 mb-1">指定叫號 (選填)</label>
+            <input id="walkInCallNum" type="number" min="1" placeholder="留空則自動順延" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-white font-mono" />
+          </div>
+          <div>
+            <label class="block text-[11px] text-zinc-400 mb-1">音樂播放方式</label>
+            <select id="walkInUsePhone" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-white">
+              <option value="false">音控電腦 / 雲端音檔</option>
+              <option value="true">📱 參賽者手機直接播放</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] text-zinc-400 mb-1">參加場次</label>
+            <select id="walkInDate" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-white">
+              <option value="10/24（六）Sat" selected>10/24（六）Sat</option>
+              <option value="10/25（日）Sun">10/25（日）Sun</option>
+              <option value="10/26（一）Mon">10/26（一）Mon</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-[11px] text-zinc-400 mb-1">音樂檔連結 或 歌名 / 備註</label>
+          <input id="walkInMusic" type="text" placeholder="Google Drive 連結、歌名，或手機轉接頭備註" class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-white" />
+        </div>
+        <div>
+          <label class="block text-[11px] text-zinc-400 mb-1">想讓主持人介紹的內容</label>
+          <textarea id="walkInIntro" rows="2" placeholder="輸入主持介紹詞..." class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-white"></textarea>
+        </div>
+        <div class="flex justify-end gap-2 pt-1">
+          <button id="resetLocalStateBtn" type="button" class="mr-auto text-[11px] text-rose-400 hover:underline">
+            重置本機排序與報到紀錄
+          </button>
+          <button type="submit" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-zinc-950">
+            加入演出清單
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. PRE-RESOLVED GOOGLE DRIVE AUDIO METADATA & INITIAL REAL SPREADSHEET DATA
+    // =========================================================================
+    const KNOWN_DRIVE_FILES = {
+      "1DnIi19MNiRvrf2FX6EjAn_PE1hu8PxP4": {
+        title: "Adam Lambert - Whataya Want from Me (Lyrics) cut 1.mp3",
+        type: "audio"
+      },
+      "1jr-oLLm8CyvrMraSTjTJWOaU_e4DLS19": {
+        title: "📁 資料夾：2026火神祭 Fire space_Hiya",
+        type: "folder"
+      },
+      "1t6vB8z5VQPvvSWsM9Hz2Q4oUWuIjqyst": {
+        title: "雨琳 Take Me Hand.mp3",
+        type: "audio"
+      },
+      "1BUXRMRGXTLNAmw-qcL4rACntDqCDtbd6": {
+        title: "火神祭-阿庚.mp3",
+        type: "audio"
+      },
+      "1FM_-CBLUaop56Jw__Yy17l5Zqc5WGaQY": {
+        title: "openstage-阿金 天靈靈地靈靈.mp3",
+        type: "audio"
+      },
+      "1Sx52gt-L_TPMc-aJJEsfGg2fMFB7X5EA": {
+        title: "IF ELEPHANT COULD FLY .mp3",
+        type: "audio"
+      },
+      "1zcBrCCnk6xnW-Z2-FS1hFCKxboLvFHBP": {
+        title: "米津玄師 - 海の幽霊 Kenshi Yonezu - Spirits of the Sea.mp3",
+        type: "audio"
+      },
+      "19-89RjWprm1ZVFhgJZOuSwHpxdmFTtbk": {
+        title: "Gino.mp3",
+        type: "audio"
+      }
+    };
+
+    // Initial Snapshot from 2026火神祭｜星火島 Open Stage 報名（回覆）
+    const INITIAL_PERFORMERS = [
+      {
+        id: "row-1",
+        timestamp: "2026/10/21 下午 10:20:32",
+        dates: "10/25（日）Sun",
+        stageName: "蘇子鈞",
+        contactName: "蘇子鈞",
+        mobile: "0912449250",
+        instagram: "",
+        count: "1 人",
+        props: "",
+        length: "",
+        fuel: "",
+        music: "https://drive.google.com/file/d/1DnIi19MNiRvrf2FX6EjAn_PE1hu8PxP4/view?usp=drivesdk",
+        intro: "大家好，我是蘇子鈞，來自中正大學火藝社，雖然已經畢業、成為上班族，但還是很開心能繼續玩火舞。火神季真的是一個很棒的活動，讓大家可以表演、交流，希望每年都會舉辦🔥"
+      },
+      {
+        id: "row-2",
+        timestamp: "2026/10/21 下午 11:55:54",
+        dates: "10/24（六）Sat, 10/25（日）Sun",
+        stageName: "Hiya（害雅）",
+        contactName: "陳重逸",
+        mobile: "0955644296",
+        instagram: "alter.hiya",
+        count: "1 人",
+        props: "",
+        length: "",
+        fuel: "",
+        music: "https://drive.google.com/drive/folders/1jr-oLLm8CyvrMraSTjTJWOaU_e4DLS19?usp=sharing",
+        intro: "眼淚是水做的，大海也是。眼淚是鹹的，台北的醬油膏也是。"
+      },
+      {
+        id: "row-3",
+        timestamp: "2026/10/23 上午 2:45:31",
+        dates: "10/24（六）Sat, 10/25（日）Sun, 10/26（一）Mon",
+        stageName: "阿睿",
+        contactName: "楊睿紘",
+        mobile: "0966411957",
+        instagram: "_ray.yyyyy",
+        count: "1 人",
+        props: "Poi (成大新生poi手)",
+        length: "",
+        fuel: "",
+        music: "",
+        intro: "作品名稱「成大新生poi手的表演」\n大家好我是成大火舞社新生楊睿紘，表演內很多最近學的新招，如果一直掉球不要罵我"
+      },
+      {
+        id: "row-4",
+        timestamp: "2026/10/23 上午 2:54:04",
+        dates: "10/25（日）Sun",
+        stageName: "半個人",
+        contactName: "陳毓琳",
+        mobile: "0909040017",
+        instagram: "lynnlan0.0",
+        count: "1 人",
+        props: "",
+        length: "",
+        fuel: "",
+        music: "https://drive.google.com/file/d/1t6vB8z5VQPvvSWsM9Hz2Q4oUWuIjqyst/view?usp=drivesdk",
+        intro: "好難！"
+      },
+      {
+        id: "row-5",
+        timestamp: "2026/10/23 下午 7:13:03",
+        dates: "10/25（日）Sun",
+        stageName: "逐焰流影｜阿庚",
+        contactName: "謝庚錡",
+        mobile: "0968012087",
+        instagram: "https://www.instagram.com/lt325___tora.geng?cplk=ODA0dXBiNGE2Zzlm&utm_source=qr",
+        count: "1 人",
+        props: "",
+        length: "",
+        fuel: "",
+        music: "https://drive.google.com/file/d/1BUXRMRGXTLNAmw-qcL4rACntDqCDtbd6/view?usp=sharing",
+        intro: "來自桃園龍潭，東興里最後的驕傲!火舞界的滄海遺珠-阿庚。雖然東興里可能沒有人知道他是誰，但他依然堅持為家鄉爭光。"
+      },
+      {
+        id: "row-6",
+        timestamp: "2026/10/23 下午 7:23:12",
+        dates: "10/24（六）Sat, 10/25（日）Sun, 10/26（一）Mon",
+        stageName: "阿金",
+        contactName: "金塏庭",
+        mobile: "0906986209",
+        instagram: "aurum_0209",
+        count: "1 人",
+        props: "火雙節棍",
+        length: "",
+        fuel: "",
+        music: "https://drive.google.com/file/d/1FM_-CBLUaop56Jw__Yy17l5Zqc5WGaQY/view?usp=drivesdk",
+        intro: "大家好，最近開始玩火雙節棍覺得挺好玩的，想讓大家一起來練這樣我就能偷招了。\n（註：表單內兩筆阿金報名已自動整合音樂與介紹詞）"
+      },
+      {
+        id: "row-7",
+        timestamp: "2026/10/23 下午 7:23:53",
+        dates: "10/25（日）Sun",
+        stageName: "陳則安",
+        contactName: "陳則安",
+        mobile: "0979580387",
+        instagram: "",
+        count: "1 人",
+        props: "",
+        length: "",
+        fuel: "",
+        music: "https://drive.google.com/file/d/1Sx52gt-L_TPMc-aJJEsfGg2fMFB7X5EA/view?usp=drive_link",
+        intro: ""
+      },
+      {
+        id: "row-8",
+        timestamp: "2026/10/23 下午 9:08:54",
+        dates: "10/24（六）Sat, 10/25（日）Sun, 10/26（一）Mon",
+        stageName: "阿金（第二筆補充介紹）",
+        contactName: "金塏庭",
+        mobile: "0906986209",
+        instagram: "aurum_0209",
+        count: "1 人",
+        props: "火雙節棍",
+        length: "",
+        fuel: "",
+        music: "https://drive.google.com/file/d/1FM_-CBLUaop56Jw__Yy17l5Zqc5WGaQY/view?usp=drivesdk",
+        intro: "大家好，最近開始玩火雙節棍覺得挺好玩的，想讓大家一起來練這樣我就能偷招了。"
+      },
+      {
+        id: "row-9",
+        timestamp: "2026/10/23 下午 9:34:04",
+        dates: "10/24（六）Sat",
+        stageName: "親愛精誠",
+        contactName: "黃信彰（泡泡）",
+        mobile: "0937171739",
+        instagram: "alos.12ll",
+        count: "1 人",
+        props: "",
+        length: "",
+        fuel: "",
+        music: "https://drive.google.com/file/d/1zcBrCCnk6xnW-Z2-FS1hFCKxboLvFHBP/view?usp=drivesdk",
+        intro: "國家有剛常 軍隊有軍紀\n不對搞錯了是 替代役青年 夢想起飛\n好啦正經一下嗨大家我泡泡\n現在是顆滷蛋 被害雅勸了好幾次才鼓起勇氣報名\n這首歌在我低潮時救了我很多次\n於是想帶給大家這首歌"
+      },
+      {
+        id: "row-10",
+        timestamp: "2026/10/23 下午 10:56:25",
+        dates: "10/24（六）Sat",
+        stageName: "薔琵颱風這就是你的極限嗎",
+        contactName: "陳敬杰",
+        mobile: "0911866090",
+        instagram: "jack910202",
+        count: "1 人",
+        props: "",
+        length: "",
+        fuel: "",
+        music: "做事人-美秀集團",
+        intro: ""
+      },
+      {
+        id: "row-11",
+        timestamp: "2026/10/24 上午 5:36:40",
+        dates: "10/24（六）Sat",
+        stageName: "Gino",
+        contactName: "楊顯裕",
+        mobile: "0983579118",
+        instagram: "gin0y0ung",
+        count: "1 人",
+        props: "",
+        length: "",
+        fuel: "",
+        music: "https://drive.google.com/file/d/19-89RjWprm1ZVFhgJZOuSwHpxdmFTtbk/view?usp=drivesdk",
+        intro: ""
+      },
+      {
+        id: "row-12",
+        timestamp: "2026/10/24 下午 1:57:19",
+        dates: "10/24（六）Sat",
+        stageName: "吳佳臻",
+        contactName: "吳佳臻",
+        mobile: "0978903339",
+        instagram: "joycewu.gz",
+        count: "1 人",
+        props: "",
+        length: "",
+        fuel: "",
+        music: "",
+        intro: ""
+      },
+      {
+        id: "row-13",
+        timestamp: "2026/10/24 下午 3:10:48",
+        dates: "10/25（日）Sun",
+        stageName: "夜遊仔",
+        contactName: "葉尤佐",
+        mobile: "0978307216",
+        instagram: "yeeeeeemo（6個e)葉尤佐快去畫圖",
+        count: "1 人",
+        props: "",
+        length: "2分半",
+        fuel: "",
+        music: "Unsweetened Lemonade",
+        intro: "睡覺睡到一半聽說可以報名就跑來了 報了才想到不知道要跳什麼 所以決定上台轉圈2分半\n鯨魚我會傳承你戰鬥陀螺的意志!!!!!!!!"
+      }
+    ];
+
+    // =========================================================================
+    // 2. APPLICATION STATE
+    // =========================================================================
+    const STORAGE_KEY = "firemosa_open_stage_state_v2";
+
+    let state = {
+      sheetId: "15yGxi0ylBga2GRC6-OeWLvxX8roJpjpFnJpz5Zsao6w",
+      selectedDate: "10/24", // Default tonight 10/24
+      viewMode: "split",     // 'split' | 'mc' | 'sound'
+      hideDone: false,
+      onlyCheckedInQueue: false,
+      searchQuery: "",
+      refreshIntervalSec: 10,
+      countdownSec: 10,
+      performers: [...INITIAL_PERFORMERS],
+      // Per-performer local state keyed by id:
+      // { status: 'waiting'|'checked_in'|'done'|'skipped', orderRank: number, callNumber: number|null, usePhone: boolean, soundNote: string }
+      localMeta: {
+        // Default mark duplicate row-8 as merged/skipped so tonight's 7 unique performers are clean
+        "row-8": { status: "skipped", orderRank: 999, callNumber: null, usePhone: false, soundNote: "" }
+      },
+      activePerformerId: null,
+      // Stage stopwatch
+      timerRunning: false,
+      timerSeconds: 0
+    };
+
+    // Load saved state from localStorage safely
+    function loadSavedState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.localMeta) state.localMeta = { ...state.localMeta, ...parsed.localMeta };
+          if (parsed.selectedDate) state.selectedDate = parsed.selectedDate;
+          if (typeof parsed.onlyCheckedInQueue === "boolean") {
+            state.onlyCheckedInQueue = parsed.onlyCheckedInQueue;
+            const toggleEl = document.getElementById("onlyCheckedInToggle");
+            if (toggleEl) toggleEl.checked = state.onlyCheckedInQueue;
+          }
+          if (parsed.activePerformerId) state.activePerformerId = parsed.activePerformerId;
+          if (Array.isArray(parsed.walkIns) && parsed.walkIns.length > 0) {
+            const existingIds = new Set(state.performers.map(p => p.id));
+            parsed.walkIns.forEach(w => {
+              if (!existingIds.has(w.id)) state.performers.push(w);
+            });
+          }
+        }
+      } catch (e) {
+        // Ignore storage errors in sandboxed iframe
+      }
+    }
+
+    function saveState() {
+      try {
+        const walkIns = state.performers.filter(p => p.id.startsWith("walkin-"));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          localMeta: state.localMeta,
+          selectedDate: state.selectedDate,
+          onlyCheckedInQueue: state.onlyCheckedInQueue,
+          activePerformerId: state.activePerformerId,
+          walkIns
+        }));
+      } catch (e) {
+        // Ignore storage errors
+      }
+    }
+
+    function ensureMeta(id, indexFallback) {
+      if (!state.localMeta[id]) {
+        state.localMeta[id] = {
+          status: "waiting", // 'waiting' | 'checked_in' | 'done' | 'skipped'
+          orderRank: indexFallback * 10,
+          callNumber: null,  // Assigned on-site check-in call number (#1, #2, #3...)
+          usePhone: false,   // Whether sound tech sets music to play from performer's phone
+          soundNote: ""      // Optional note for sound tech
+        };
+      } else {
+        if (typeof state.localMeta[id].callNumber === "undefined") state.localMeta[id].callNumber = null;
+        if (typeof state.localMeta[id].usePhone === "undefined") state.localMeta[id].usePhone = false;
+        if (typeof state.localMeta[id].soundNote === "undefined") state.localMeta[id].soundNote = "";
+      }
+      return state.localMeta[id];
+    }
+
+    // Calculate the next available check-in call number for the active date
+    function getNextAvailableCallNumber() {
+      let maxNum = 0;
+      state.performers.forEach((p, idx) => {
+        if (state.selectedDate !== "ALL" && !(p.dates || "").includes(state.selectedDate)) return;
+        const meta = ensureMeta(p.id, idx + 1);
+        if (meta.callNumber && Number(meta.callNumber) > maxNum) {
+          maxNum = Number(meta.callNumber);
+        }
+      });
+      return maxNum + 1;
+    }
+
+    // =========================================================================
+    // 3. MUSIC LINK PARSER & HELPER
+    // =========================================================================
+    function parseMusicInfo(rawMusic, contactName, stageName, usePhone) {
+      const val = (rawMusic || "").trim();
+      let baseInfo = null;
+
+      // Special fallback: if 阿金 row-8 had no music but row-6 had music
+      if (!val && (stageName.includes("阿金") || contactName === "金塏庭")) {
+        baseInfo = parseMusicInfo("https://drive.google.com/file/d/1FM_-CBLUaop56Jw__Yy17l5Zqc5WGaQY/view?usp=drivesdk", contactName, stageName, false);
+      } else if (!val) {
+        baseInfo = {
+          kind: "none",
+          badgeText: "未填音樂 / 現場確認",
+          badgeClass: "bg-zinc-800 text-zinc-400 border-zinc-700",
+          displayTitle: "表單未附音檔（請確認是否用參賽者手機或現場環境樂）",
+          url: null,
+          previewUrl: null,
+          downloadUrl: null
+        };
+      } else {
+        // Check if it's a Google Drive file URL
+        const fileMatch = val.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || val.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+        if (fileMatch) {
+          const fileId = fileMatch[1];
+          const known = KNOWN_DRIVE_FILES[fileId];
+          const fileName = known ? known.title : `Google 雲端音檔 (${fileId.slice(0, 8)}...)`;
+          baseInfo = {
+            kind: "drive_file",
+            fileId,
+            badgeText: "💻 音控播放・雲端 MP3",
+            badgeClass: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",
+            displayTitle: fileName,
+            url: val,
+            previewUrl: `https://drive.google.com/file/d/${fileId}/preview`,
+            downloadUrl: `https://drive.google.com/uc?export=download&id=${fileId}`
+          };
+        } else {
+          // Check if it's a Google Drive folder URL
+          const folderMatch = val.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+          if (folderMatch) {
+            const folderId = folderMatch[1];
+            const known = KNOWN_DRIVE_FILES[folderId];
+            const folderName = known ? known.title : `Google 雲端資料夾 (${folderId.slice(0, 8)}...)`;
+            baseInfo = {
+              kind: "drive_folder",
+              folderId,
+              badgeText: "💻 音控播放・雲端資料夾",
+              badgeClass: "bg-purple-500/15 text-purple-300 border-purple-500/30",
+              displayTitle: folderName,
+              url: val,
+              previewUrl: null,
+              downloadUrl: null
+            };
+          } else if (val.startsWith("http://") || val.startsWith("https://")) {
+            baseInfo = {
+              kind: "external_url",
+              badgeText: "💻 外部音樂連結",
+              badgeClass: "bg-blue-500/15 text-blue-300 border-blue-500/30",
+              displayTitle: val,
+              url: val,
+              previewUrl: null,
+              downloadUrl: null
+            };
+          } else {
+            // Otherwise it's a song title (e.g., "做事人-美秀集團", "Unsweetened Lemonade")
+            const ytQuery = encodeURIComponent(val);
+            baseInfo = {
+              kind: "song_name",
+              badgeText: "🎵 指定曲名 (需搜尋播放)",
+              badgeClass: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+              displayTitle: `🎵 指定曲名：《${val}》`,
+              rawSong: val,
+              url: `https://www.youtube.com/results?search_query=${ytQuery}`,
+              previewUrl: null,
+              downloadUrl: null
+            };
+          }
+        }
+      }
+
+      if (usePhone) {
+        return {
+          ...baseInfo,
+          usePhone: true,
+          badgeText: "📱 參賽者手機播放",
+          badgeClass: "bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/50",
+          phoneTitle: "📱 由參賽者自備手機連接控台播放（請確認轉接頭、開啟飛航模式與音量）",
+          backupTitle: baseInfo.kind !== "none" ? `原表單備份曲目：${baseInfo.displayTitle}` : null
+        };
+      }
+
+      return { ...baseInfo, usePhone: false };
+    }
+
+    function formatInstagram(rawIg) {
+      if (!rawIg || !rawIg.trim()) return null;
+      const clean = rawIg.trim();
+      if (clean.startsWith("http")) {
+        const handleMatch = clean.match(/instagram\.com\/([^/?#]+)/);
+        const label = handleMatch ? `@${handleMatch[1]}` : "IG 連結";
+        return { label, url: clean };
+      }
+      const handle = clean.replace(/^@/, "").split(/\s+/)[0];
+      return {
+        label: `@${clean.replace(/^@/, "")}`,
+        url: `https://www.instagram.com/${encodeURIComponent(handle)}/`
+      };
+    }
+
+    // =========================================================================
+    // 4. FILTERING & QUEUE COMPUTATION (BY CALL NUMBER & ORDER RANK)
+    // =========================================================================
+    function comparePerformers(a, b) {
+      const ma = ensureMeta(a.id, 0);
+      const mb = ensureMeta(b.id, 0);
+
+      // Performers with an assigned callNumber always sort by callNumber first!
+      const hasCallA = ma.callNumber !== null && ma.callNumber !== "" && !isNaN(Number(ma.callNumber));
+      const hasCallB = mb.callNumber !== null && mb.callNumber !== "" && !isNaN(Number(mb.callNumber));
+
+      if (hasCallA && hasCallB) {
+        if (Number(ma.callNumber) !== Number(mb.callNumber)) {
+          return Number(ma.callNumber) - Number(mb.callNumber);
+        }
+      } else if (hasCallA && !hasCallB) {
+        return -1;
+      } else if (!hasCallA && hasCallB) {
+        return 1;
+      }
+
+      return ma.orderRank - mb.orderRank;
+    }
+
+    function getFilteredPerformers() {
+      state.performers.forEach((p, idx) => ensureMeta(p.id, idx + 1));
+
+      return state.performers
+        .filter(p => {
+          if (state.selectedDate !== "ALL") {
+            if (!(p.dates || "").includes(state.selectedDate)) return false;
+          }
+          if (state.searchQuery.trim()) {
+            const q = state.searchQuery.trim().toLowerCase();
+            const hay = `${p.stageName} ${p.contactName} ${p.instagram} ${p.music} ${p.intro} ${p.props}`.toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          return true;
+        })
+        .sort(comparePerformers);
+    }
+
+    function getActiveQueue() {
+      const allForDate = state.performers
+        .filter(p => state.selectedDate === "ALL" || (p.dates || "").includes(state.selectedDate))
+        .sort(comparePerformers);
+
+      const pending = allForDate.filter(p => {
+        const meta = ensureMeta(p.id, 0);
+        if (meta.status === "done" || meta.status === "skipped") return false;
+        if (state.onlyCheckedInQueue && meta.status !== "checked_in") return false;
+        return true;
+      });
+
+      return { allForDate, pending };
+    }
+
+    // =========================================================================
+    // 5. RENDERING UI
+    // =========================================================================
+    function updateDateCounts() {
+      const c24 = state.performers.filter(p => (p.dates || "").includes("10/24") && ensureMeta(p.id, 0).status !== "skipped").length;
+      const c25 = state.performers.filter(p => (p.dates || "").includes("10/25") && ensureMeta(p.id, 0).status !== "skipped").length;
+      const c26 = state.performers.filter(p => (p.dates || "").includes("10/26") && ensureMeta(p.id, 0).status !== "skipped").length;
+      const cAll = state.performers.filter(p => ensureMeta(p.id, 0).status !== "skipped").length;
+
+      document.getElementById("count1024").textContent = c24;
+      document.getElementById("count1025").textContent = c25;
+      document.getElementById("count1026").textContent = c26;
+      document.getElementById("countAll").textContent = cAll;
+
+      const nextCall = getNextAvailableCallNumber();
+      const callInd = document.getElementById("nextCallNumIndicator");
+      if (callInd) callInd.textContent = `下一號 #${nextCall}`;
+
+      document.querySelectorAll(".date-filter-btn").forEach(btn => {
+        const d = btn.getAttribute("data-date");
+        if (d === state.selectedDate) {
+          btn.className = "date-filter-btn px-3 py-1 rounded-full text-xs font-bold bg-orange-500 text-white shadow-sm transition shrink-0";
+        } else {
+          btn.className = "date-filter-btn px-3 py-1 rounded-full text-xs font-bold bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition shrink-0";
+        }
+      });
+    }
+
+    function renderMetaPills(p) {
+      const pills = [];
+      const meta = ensureMeta(p.id, 0);
+
+      if (meta.callNumber) {
+        pills.push(`<span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500 text-zinc-950">🔢 報到叫號 #${escapeHtml(meta.callNumber)}</span>`);
+      } else if (meta.status === "checked_in") {
+        pills.push(`<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">✓ 已現場報到</span>`);
+      } else if (meta.status === "waiting") {
+        pills.push(`<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">⏳ 待現場報到領號</span>`);
+      }
+
+      if (meta.usePhone) {
+        pills.push(`<span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-fuchsia-500/25 text-fuchsia-200 border border-fuchsia-400/50">📱 參賽者手機播放</span>`);
+      }
+
+      if (p.count) {
+        pills.push(`<span class="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-zinc-800 text-zinc-200 border border-zinc-700">👥 ${escapeHtml(p.count)}</span>`);
+      }
+      if (p.props) {
+        pills.push(`<span class="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-orange-500/15 text-orange-300 border border-orange-500/30">🔥 道具：${escapeHtml(p.props)}</span>`);
+      }
+      if (p.length) {
+        pills.push(`<span class="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700">⏱ 長度：${escapeHtml(p.length)}</span>`);
+      }
+      if (p.fuel) {
+        pills.push(`<span class="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700">⛽ 燃料：${escapeHtml(p.fuel)}</span>`);
+      }
+
+      const ig = formatInstagram(p.instagram);
+      if (ig) {
+        pills.push(`<a href="${ig.url}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-pink-500/15 text-pink-300 border border-pink-500/30 hover:bg-pink-500/25 transition">📸 IG: ${escapeHtml(ig.label)}</a>`);
+      }
+
+      if (p.mobile) {
+        pills.push(`<span class="px-2.5 py-0.5 rounded-lg text-xs font-mono text-zinc-400 bg-zinc-900 border border-zinc-800">📱 ${escapeHtml(p.mobile)}</span>`);
+      }
+
+      return pills.join("");
+    }
+
+    function renderMusicBoxHtml(musicInfo, isCurrent) {
+      let phoneBanner = "";
+      if (musicInfo.usePhone) {
+        phoneBanner = `
+          <div class="bg-fuchsia-950/70 border-2 border-fuchsia-500/70 rounded-xl p-3 mb-2 flex items-start justify-between gap-2">
+            <div>
+              <div class="text-sm sm:text-base font-black text-fuchsia-200 flex items-center gap-1.5">
+                <span>📱 此組設定為「參賽者手機直接播放」</span>
+              </div>
+              <p class="text-xs text-fuchsia-300/90 mt-0.5">
+                請音控準備音源線 / Lightning 或 Type-C 轉接頭，並提醒表演者手機開啟「飛航 / 勿擾模式」避免演出中來電中斷。
+              </p>
+              ${musicInfo.backupTitle ? `<p class="text-[11px] text-zinc-400 mt-1">${escapeHtml(musicInfo.backupTitle)}</p>` : ""}
+            </div>
+          </div>
+        `;
+      }
+
+      if (musicInfo.kind === "none") {
+        return phoneBanner + `
+          <div class="text-xs sm:text-sm text-zinc-400 bg-zinc-900/90 border border-zinc-800 rounded-lg p-3 flex items-center justify-between">
+            <span>⚠️ ${escapeHtml(musicInfo.displayTitle)}</span>
+          </div>
+        `;
+      }
+
+      if (musicInfo.kind === "song_name") {
+        return phoneBanner + `
+          <div class="bg-zinc-900 border border-amber-500/30 rounded-lg p-3 space-y-2">
+            <div class="text-sm sm:text-base font-black text-amber-300">${escapeHtml(musicInfo.displayTitle)}</div>
+            <div class="flex flex-wrap items-center gap-2">
+              <a href="${musicInfo.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-red-600 hover:bg-red-500 text-white transition">
+                <span>▶ YouTube 搜尋此曲</span>
+              </a>
+              <button type="button" onclick="copyText('${escapeJs(musicInfo.rawSong)}')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700">
+                複製歌名
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      if (musicInfo.kind === "drive_file") {
+        return phoneBanner + `
+          <div class="bg-zinc-900 border border-cyan-500/30 rounded-lg p-3 space-y-2.5">
+            <div class="flex items-start justify-between gap-2">
+              <div class="text-sm sm:text-base font-bold text-white break-all">
+                🎵 ${escapeHtml(musicInfo.displayTitle)}
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <a href="${musicInfo.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white shadow transition">
+                <span>📂 開啟雲端音檔</span>
+              </a>
+              <a href="${musicInfo.downloadUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition">
+                <span>⬇ 直接下載 MP3</span>
+              </a>
+              ${isCurrent ? `
+                <button type="button" onclick="toggleInlinePlayer('${musicInfo.fileId}')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-cyan-300 border border-cyan-500/30 transition">
+                  🔈 網頁內嵌播放器
+                </button>
+              ` : ""}
+            </div>
+            ${isCurrent ? `
+              <div id="inlinePlayer-${musicInfo.fileId}" class="hidden pt-2">
+                <iframe src="${musicInfo.previewUrl}" class="w-full h-16 rounded-lg border border-zinc-700 bg-black" allow="autoplay"></iframe>
+              </div>
+            ` : ""}
+          </div>
+        `;
+      }
+
+      // Folder or external URL
+      return phoneBanner + `
+        <div class="bg-zinc-900 border border-purple-500/30 rounded-lg p-3 space-y-2">
+          <div class="text-sm sm:text-base font-bold text-purple-200 break-all">
+            ${escapeHtml(musicInfo.displayTitle)}
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <a href="${musicInfo.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white transition">
+              <span>📂 開啟雲端音檔資料夾</span>
+            </a>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderHeroCards() {
+      const { allForDate, pending } = getActiveQueue();
+
+      // Determine Current Performer
+      let current = null;
+      if (state.activePerformerId) {
+        current = pending.find(p => p.id === state.activePerformerId) || allForDate.find(p => p.id === state.activePerformerId);
+      }
+      if (!current && pending.length > 0) {
+        current = pending[0];
+        state.activePerformerId = current.id;
+      }
+
+      // Determine Next Performer
+      let next = null;
+      let afterNext = null;
+      if (current) {
+        const idxInPending = pending.findIndex(p => p.id === current.id);
+        if (idxInPending !== -1) {
+          next = pending[idxInPending + 1] || null;
+          afterNext = pending[idxInPending + 2] || null;
+        } else {
+          next = pending[0] || null;
+          afterNext = pending[1] || null;
+        }
+      }
+
+      const currCallBadge = document.getElementById("currentCallNumBadge");
+      const currPhoneBtn = document.getElementById("toggleCurrentPhoneBtn");
+
+      // Render CURRENT Card
+      if (!current) {
+        currCallBadge.classList.add("hidden");
+        currPhoneBtn.classList.add("hidden");
+        document.getElementById("currentOrderBadge").textContent = "無待演組別";
+        document.getElementById("currentStageName").textContent = state.onlyCheckedInQueue ? "目前尚無「已報到領號」的待演者" : "目前場次已無待演名單";
+        document.getElementById("currentRealName").textContent = "";
+        document.getElementById("currentMetaTags").innerHTML = "";
+        document.getElementById("currentIntroText").textContent = state.onlyCheckedInQueue
+          ? "請音控在下方清單針對已到場的表演者點擊「➕ 報到領號」，即可立即排入叫號上台！"
+          : "所有報名組別皆已完成演出，或可切換上方場次篩選、點擊下方清單任一組別再上台。";
+        document.getElementById("currentMcHelperPrompt").textContent = "";
+        document.getElementById("currentMusicContent").innerHTML = `<div class="text-xs text-zinc-500">無音檔待播</div>`;
+      } else {
+        const currMeta = ensureMeta(current.id, 0);
+        const pos = allForDate.findIndex(p => p.id === current.id) + 1;
+
+        if (currMeta.callNumber) {
+          currCallBadge.classList.remove("hidden");
+          currCallBadge.textContent = `叫號 #${currMeta.callNumber}`;
+        } else {
+          currCallBadge.classList.add("hidden");
+        }
+
+        currPhoneBtn.classList.remove("hidden");
+        currPhoneBtn.onclick = () => window.toggleUsePhone(current.id);
+        if (currMeta.usePhone) {
+          currPhoneBtn.textContent = "📱 已設為參賽者手機播放 (點擊改回音控)";
+          currPhoneBtn.className = "text-[11px] font-black px-2.5 py-1 rounded-lg bg-fuchsia-600 text-white border border-fuchsia-400 shadow transition";
+        } else {
+          currPhoneBtn.textContent = "📱 改用參賽者手機播放";
+          currPhoneBtn.className = "text-[11px] font-bold px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition";
+        }
+
+        document.getElementById("currentOrderBadge").textContent = `佇列 #${pos} / 共 ${allForDate.length} 組`;
+        document.getElementById("currentStageName").textContent = current.stageName;
+        document.getElementById("currentRealName").textContent = current.contactName && current.contactName !== current.stageName ? `（${current.contactName}）` : "";
+        document.getElementById("currentMetaTags").innerHTML = renderMetaPills(current);
+
+        // Intro text
+        const intro = (current.intro || "").trim();
+        document.getElementById("currentIntroText").textContent = intro
+          ? intro
+          : `（表演者未填寫介紹詞 — 可直接介紹演出名稱「${current.stageName}」${current.instagram ? `，IG 搜尋 @${current.instagram.replace(/^@/, "")}` : ""}！）`;
+
+        const nextMetaInfo = next ? ensureMeta(next.id, 0) : null;
+        const nextCallPrefix = nextMetaInfo && nextMetaInfo.callNumber ? `第 ${nextMetaInfo.callNumber} 號 ` : "";
+        const nextCueStr = next ? `同時請下一位 ${nextCallPrefix}【${next.stageName}】至側台準備區浸油待命！` : `這是本時段最後一組演出！`;
+        const currCallPrefix = currMeta.callNumber ? `第 ${currMeta.callNumber} 號——` : "";
+        document.getElementById("currentMcHelperPrompt").textContent = `📣 主持收尾固定句：「掌聲歡迎 ${currCallPrefix}${current.stageName}！」（${nextCueStr}）`;
+
+        // Music
+        const musicInfo = parseMusicInfo(current.music, current.contactName, current.stageName, currMeta.usePhone);
+        const badgeEl = document.getElementById("currentMusicTypeBadge");
+        badgeEl.textContent = musicInfo.badgeText;
+        badgeEl.className = `text-[11px] font-bold px-2 py-0.5 rounded border ${musicInfo.badgeClass}`;
+        document.getElementById("currentMusicContent").innerHTML = renderMusicBoxHtml(musicInfo, true);
+      }
+
+      const nextCallBadge = document.getElementById("nextCallNumBadge");
+      const nextPhoneBtn = document.getElementById("toggleNextPhoneBtn");
+
+      // Render NEXT Card
+      if (!next) {
+        nextCallBadge.classList.add("hidden");
+        nextPhoneBtn.classList.add("hidden");
+        document.getElementById("nextOrderBadge").textContent = "--";
+        document.getElementById("nextCheckInBadge").textContent = "";
+        document.getElementById("nextCheckInBadge").className = "hidden";
+        document.getElementById("nextStageName").textContent = "無下一位待命者";
+        document.getElementById("nextRealName").textContent = "";
+        document.getElementById("nextMetaTags").innerHTML = "";
+        document.getElementById("nextIntroText").textContent = "目前隊列中沒有下一組待演者（音控可隨時於下方清單點擊「➕ 報到領號」安排下一位叫號）。";
+        document.getElementById("nextMusicTypeBadge").textContent = "無";
+        document.getElementById("nextMusicContent").innerHTML = `<div class="text-xs text-zinc-500">等待新報到或從下方清單選取</div>`;
+      } else {
+        const nextPos = allForDate.findIndex(p => p.id === next.id) + 1;
+        const nextMeta = ensureMeta(next.id, 0);
+        document.getElementById("nextOrderBadge").textContent = `佇列 #${nextPos}`;
+
+        if (nextMeta.callNumber) {
+          nextCallBadge.classList.remove("hidden");
+          nextCallBadge.textContent = `叫號 #${nextMeta.callNumber}`;
+        } else {
+          nextCallBadge.classList.add("hidden");
+        }
+
+        nextPhoneBtn.classList.remove("hidden");
+        nextPhoneBtn.onclick = () => window.toggleUsePhone(next.id);
+        if (nextMeta.usePhone) {
+          nextPhoneBtn.textContent = "📱 手機播放 (點擊切換)";
+          nextPhoneBtn.className = "text-[10px] font-black px-2 py-0.5 rounded bg-fuchsia-600 text-white border border-fuchsia-400 transition";
+        } else {
+          nextPhoneBtn.textContent = "📱 改用手機播放";
+          nextPhoneBtn.className = "text-[10px] font-bold px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition";
+        }
+
+        const chkBadge = document.getElementById("nextCheckInBadge");
+        if (nextMeta.status === "checked_in") {
+          chkBadge.textContent = nextMeta.callNumber ? `✓ 已報到 (#${nextMeta.callNumber})` : "✓ 已現場報到";
+          chkBadge.className = "text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+        } else {
+          chkBadge.textContent = "⏳ 尚未報到領號";
+          chkBadge.className = "text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30";
+        }
+
+        document.getElementById("nextStageName").textContent = next.stageName;
+        document.getElementById("nextRealName").textContent = next.contactName && next.contactName !== next.stageName ? `（${next.contactName}）` : "";
+        document.getElementById("nextMetaTags").innerHTML = renderMetaPills(next);
+
+        const nextIntro = (next.intro || "").trim();
+        document.getElementById("nextIntroText").textContent = nextIntro
+          ? nextIntro
+          : `（未填寫介紹詞 — 演出名稱：${next.stageName}）`;
+
+        const nextMusic = parseMusicInfo(next.music, next.contactName, next.stageName, nextMeta.usePhone);
+        const nextBadge = document.getElementById("nextMusicTypeBadge");
+        nextBadge.textContent = nextMusic.badgeText;
+        nextBadge.className = `text-[10px] font-bold px-2 py-0.5 rounded border ${nextMusic.badgeClass}`;
+        document.getElementById("nextMusicContent").innerHTML = renderMusicBoxHtml(nextMusic, false);
+      }
+
+      // Render After-Next Peek
+      if (afterNext) {
+        const afterMeta = ensureMeta(afterNext.id, 0);
+        const m = parseMusicInfo(afterNext.music, afterNext.contactName, afterNext.stageName, afterMeta.usePhone);
+        const callTag = afterMeta.callNumber ? `[叫號 #${afterMeta.callNumber}] ` : "";
+        document.getElementById("afterNextName").textContent = `${callTag}${afterNext.stageName}${afterNext.contactName && afterNext.contactName !== afterNext.stageName ? ` (${afterNext.contactName})` : ""}`;
+        document.getElementById("afterNextMusicHint").textContent = afterMeta.usePhone ? "📱 參賽者手機" : (m.kind === "none" ? "未填音樂" : m.displayTitle.slice(0, 22));
+      } else {
+        document.getElementById("afterNextName").textContent = "無後續待命組別";
+        document.getElementById("afterNextMusicHint").textContent = "";
+      }
+    }
+
+    function renderQueueTable() {
+      const list = getFilteredPerformers();
+      const tbody = document.getElementById("performerTableBody");
+      const { pending } = getActiveQueue();
+
+      const currentId = state.activePerformerId;
+      const nextId = pending.length > 1 && pending[0].id === currentId ? pending[1].id : (pending[0] && pending[0].id !== currentId ? pending[0].id : null);
+
+      const visibleList = list.filter(p => {
+        const st = ensureMeta(p.id, 0).status;
+        if (state.hideDone && (st === "done" || st === "skipped")) return false;
+        return true;
+      });
+
+      const checkedInCount = list.filter(p => ensureMeta(p.id, 0).status === "checked_in").length;
+      const doneCount = list.filter(p => ensureMeta(p.id, 0).status === "done").length;
+      document.getElementById("queueSummaryBadge").textContent = `顯示 ${visibleList.length} 組 · 已報到領號 ${checkedInCount} 組 · 已完演 ${doneCount} 組`;
+
+      if (visibleList.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="py-8 text-center text-zinc-500 text-sm">
+              沒有符合篩選條件的報名資料
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = visibleList.map((p, idx) => {
+        const meta = ensureMeta(p.id, idx + 1);
+        const isCurrent = p.id === currentId && meta.status !== "done" && meta.status !== "skipped";
+        const isNext = p.id === nextId && meta.status !== "done" && meta.status !== "skipped";
+        const musicInfo = parseMusicInfo(p.music, p.contactName, p.stageName, meta.usePhone);
+        const ig = formatInstagram(p.instagram);
+
+        let rowClass = "hover:bg-zinc-800/50 transition ";
+        if (isCurrent) rowClass += "bg-orange-500/10 border-l-4 border-l-orange-500 ";
+        else if (isNext) rowClass += "bg-amber-500/10 border-l-4 border-l-amber-400 ";
+        else if (meta.status === "done" || meta.status === "skipped") rowClass += "opacity-45 bg-zinc-950/40 ";
+
+        let statusBadge = "";
+        if (isCurrent) {
+          statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-black bg-orange-500 text-white">🔥 台上演出中</span>`;
+        } else if (isNext) {
+          statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">⏭ 下一位準備</span>`;
+        } else if (meta.status === "checked_in") {
+          statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">✓ 已報到可叫號</span>`;
+        } else if (meta.status === "done") {
+          statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-zinc-800 text-zinc-400">✔ 已演出完畢</span>`;
+        } else if (meta.status === "skipped") {
+          statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-zinc-800 text-zinc-500">重複/略過</span>`;
+        } else {
+          statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-800 text-zinc-400">⏳ 未報到</span>`;
+        }
+
+        const nextAvailNum = getNextAvailableCallNumber();
+
+        return `
+          <tr class="${rowClass}">
+            <!-- Call Number Input & Move Up/Down -->
+            <td class="py-3 px-3 sm:px-4 whitespace-nowrap">
+              <div class="flex flex-col gap-1.5">
+                <div class="flex items-center gap-1">
+                  <span class="text-[11px] font-bold ${meta.callNumber ? 'text-emerald-400' : 'text-zinc-500'}">叫號#</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value="${meta.callNumber !== null && meta.callNumber !== '' ? meta.callNumber : ''}"
+                    placeholder="-"
+                     onchange="setCallNumber('${p.id}', this.value)"
+                    class="w-14 bg-zinc-950 border ${meta.callNumber ? 'border-emerald-500/70 text-emerald-300 font-black' : 'border-zinc-700 text-zinc-300'} rounded px-1.5 py-0.5 text-xs font-mono text-center focus:outline-none focus:border-orange-500"
+                    title="直接輸入或修改已報到叫號序號"
+                  />
+                  <button type="button" onclick="moveOrder('${p.id}', -1)" title="順序往前移" class="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs">↑</button>
+                  <button type="button" onclick="moveOrder('${p.id}', 1)" title="順序往後移" class="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs">↓</button>
+                </div>
+                <span class="text-[10px] text-zinc-500 font-mono">表單列序 #${idx + 1}</span>
+              </div>
+            </td>
+
+            <!-- Status & Quick Check-in Assign Call Number -->
+            <td class="py-3 px-3 whitespace-nowrap">
+              <div class="flex flex-col items-start gap-1.5">
+                ${statusBadge}
+                ${meta.status === "checked_in" ? `
+                  <button type="button" onclick="toggleCheckIn('${p.id}')" class="px-2 py-0.5 rounded text-[11px] bg-zinc-800 hover:bg-rose-950/60 text-zinc-400 hover:text-rose-300 border border-zinc-700 transition">
+                    取消報到與叫號
+                  </button>
+                ` : `
+                  <button type="button" onclick="assignNextCallNumber('${p.id}')" class="px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow transition active:scale-95">
+                    ➕ 報到領號 (#${nextAvailNum})
+                  </button>
+                `}
+              </div>
+            </td>
+
+            <!-- Performer Name & Contact -->
+            <td class="py-3 px-3">
+              <div class="flex items-center gap-1.5">
+                ${meta.callNumber ? `<span class="px-1.5 py-0.5 rounded bg-emerald-500 text-zinc-950 font-mono font-black text-xs">#${meta.callNumber}</span>` : ""}
+                <div class="font-black text-white text-base cursor-pointer hover:text-orange-400 transition" onclick="selectAsCurrent('${p.id}')">
+                  ${escapeHtml(p.stageName)}
+                </div>
+              </div>
+              <div class="text-xs text-zinc-400 flex flex-wrap items-center gap-2 mt-0.5">
+                <span>${escapeHtml(p.contactName)}</span>
+                ${p.props ? `<span class="text-orange-300 font-semibold">· ${escapeHtml(p.props)}</span>` : ""}
+                ${ig ? `<a href="${ig.url}" target="_blank" rel="noopener noreferrer" class="text-pink-400 hover:underline">${escapeHtml(ig.label)}</a>` : ""}
+              </div>
+            </td>
+
+            <!-- Date -->
+            <td class="py-3 px-3 hidden md:table-cell text-xs text-zinc-400 whitespace-nowrap">
+              ${escapeHtml(p.dates)}
+            </td>
+
+            <!-- Sound / Music + Phone Playback Toggle -->
+            <td class="py-3 px-3">
+              <div class="flex flex-col gap-1.5 max-w-xs">
+                <!-- Playback Source Switcher -->
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    onclick="toggleUsePhone('${p.id}')"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border transition ${
+                      meta.usePhone
+                        ? 'bg-fuchsia-600 text-white border-fuchsia-400 shadow-sm'
+                        : 'bg-zinc-800/90 hover:bg-zinc-700 text-zinc-300 border-zinc-700'
+                    }"
+                  >
+                    <span>${meta.usePhone ? '📱 參賽者手機播放 (已啟用)' : '💻 音控播放 (點此改手機)'}</span>
+                  </button>
+                </div>
+
+                <span class="text-xs font-semibold ${meta.usePhone ? 'text-fuchsia-300' : (musicInfo.kind === 'none' ? 'text-zinc-500' : 'text-cyan-300')} truncate">
+                  ${meta.usePhone ? '📱 現場接參賽者手機播放' : escapeHtml(musicInfo.displayTitle)}
+                </span>
+
+                ${musicInfo.url ? `
+                  <div class="flex items-center gap-2">
+                    <a href="${musicInfo.url}" target="_blank" rel="noopener noreferrer" class="text-[11px] font-bold text-orange-400 hover:underline">
+                      ${musicInfo.kind === 'song_name' ? '▶ YouTube 搜尋' : '📂 雲端音檔連結'}
+                    </a>
+                    ${musicInfo.downloadUrl ? `
+                      <a href="${musicInfo.downloadUrl}" target="_blank" rel="noopener noreferrer" class="text-[11px] text-zinc-400 hover:text-white underline">
+                        下載
+                      </a>
+                    ` : ""}
+                  </div>
+                ` : ""}
+              </div>
+            </td>
+
+            <!-- Intro Preview -->
+            <td class="py-3 px-3 hidden lg:table-cell max-w-sm">
+              <p class="text-xs text-zinc-300 line-clamp-2 whitespace-pre-line">
+                ${p.intro ? escapeHtml(p.intro) : '<span class="text-zinc-500 italic">（未填寫介紹詞）</span>'}
+              </p>
+            </td>
+
+            <!-- Actions -->
+            <td class="py-3 px-3 text-right whitespace-nowrap">
+              <div class="inline-flex items-center gap-1.5">
+                <button type="button" onclick="selectAsCurrent('${p.id}')" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-orange-500/20 hover:bg-orange-500 text-orange-300 hover:text-white border border-orange-500/40 transition">
+                  設為當前
+                </button>
+                <button type="button" onclick="toggleDone('${p.id}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition">
+                  ${meta.status === "done" ? "復原待演" : "完演"}
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function applyViewMode() {
+      const currentCard = document.getElementById("currentCardContainer");
+      const nextCard = document.getElementById("nextCardContainer");
+      const mcSection = document.getElementById("mcSectionCurrent");
+      const introText = document.getElementById("currentIntroText");
+
+      const btnSplit = document.getElementById("modeSplitBtn");
+      const btnMc = document.getElementById("modeMcBtn");
+      const btnSound = document.getElementById("modeSoundBtn");
+
+      [btnSplit, btnMc, btnSound].forEach(b => {
+        b.className = "px-2.5 py-1 rounded-md text-xs font-bold transition-all text-zinc-400 hover:text-white";
+      });
+
+      if (state.viewMode === "mc") {
+        btnMc.className = "px-2.5 py-1 rounded-md text-xs font-bold transition-all bg-orange-600 text-white shadow";
+        currentCard.className = "lg:col-span-8 bg-zinc-900 border-2 border-orange-500 rounded-2xl p-5 sm:p-7 flex flex-col justify-between card-glow-active";
+        nextCard.className = "lg:col-span-4 bg-zinc-900/90 border-2 border-amber-500/60 rounded-2xl p-4 sm:p-5 flex flex-col justify-between card-glow-next";
+        mcSection.classList.remove("hidden");
+        introText.className = "text-2xl sm:text-3xl font-black text-white leading-relaxed whitespace-pre-line";
+      } else if (state.viewMode === "sound") {
+        btnSound.className = "px-2.5 py-1 rounded-md text-xs font-bold transition-all bg-cyan-600 text-white shadow";
+        currentCard.className = "lg:col-span-6 bg-zinc-900 border-2 border-cyan-500 rounded-2xl p-4 sm:p-6 flex flex-col justify-between";
+        nextCard.className = "lg:col-span-6 bg-zinc-900/90 border-2 border-amber-500/60 rounded-2xl p-4 sm:p-6 flex flex-col justify-between";
+        introText.className = "text-sm sm:text-base font-medium text-zinc-300 leading-relaxed whitespace-pre-line";
+      } else {
+        btnSplit.className = "px-2.5 py-1 rounded-md text-xs font-bold transition-all bg-orange-600 text-white shadow";
+        currentCard.className = "lg:col-span-7 bg-zinc-900 border-2 border-orange-500/80 rounded-2xl p-4 sm:p-6 flex flex-col justify-between card-glow-active";
+        nextCard.className = "lg:col-span-5 bg-zinc-900/90 border-2 border-amber-500/60 rounded-2xl p-4 sm:p-6 flex flex-col justify-between card-glow-next";
+        introText.className = "text-lg sm:text-2xl font-bold text-zinc-100 leading-relaxed whitespace-pre-line";
+      }
+    }
+
+    function renderAll() {
+      updateDateCounts();
+      applyViewMode();
+      renderHeroCards();
+      renderQueueTable();
+      saveState();
+    }
+
+    // =========================================================================
+    // 6. INTERACTIVE ACTIONS (GLOBAL HANDLERS)
+    // =========================================================================
+    window.selectAsCurrent = function(id) {
+      const meta = ensureMeta(id, 0);
+      if (meta.status === "done" || meta.status === "skipped") {
+        meta.status = "checked_in";
+      }
+      state.activePerformerId = id;
+      renderAll();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    // Assigns the next sequential call number & marks performer as checked in
+    window.assignNextCallNumber = function(id) {
+      const meta = ensureMeta(id, 0);
+      const nextNum = getNextAvailableCallNumber();
+      meta.status = "checked_in";
+      meta.callNumber = nextNum;
+      renderAll();
+    };
+
+    // Allows sound tech to manually enter or modify a performer's call number
+    window.setCallNumber = function(id, rawValue) {
+      const meta = ensureMeta(id, 0);
+      const trimmed = String(rawValue || "").trim();
+      if (!trimmed) {
+        meta.callNumber = null;
+      } else {
+        const num = parseInt(trimmed, 10);
+        if (!isNaN(num) && num > 0) {
+          meta.callNumber = num;
+          if (meta.status === "waiting") {
+            meta.status = "checked_in";
+          }
+        }
+      }
+      renderAll();
+    };
+
+    // Toggles whether a performer's music is played from their own phone
+    window.toggleUsePhone = function(id) {
+      const meta = ensureMeta(id, 0);
+      meta.usePhone = !meta.usePhone;
+      renderAll();
+    };
+
+    window.toggleCheckIn = function(id) {
+      const meta = ensureMeta(id, 0);
+      if (meta.status === "checked_in") {
+        meta.status = "waiting";
+        meta.callNumber = null;
+      } else {
+        meta.status = "checked_in";
+        if (!meta.callNumber) {
+          meta.callNumber = getNextAvailableCallNumber();
+        }
+      }
+      renderAll();
+    };
+
+    window.toggleDone = function(id) {
+      const meta = ensureMeta(id, 0);
+      meta.status = meta.status === "done" ? "checked_in" : "done";
+      if (meta.status === "done" && state.activePerformerId === id) {
+        const { pending } = getActiveQueue();
+        state.activePerformerId = pending[0] ? pending[0].id : null;
+      }
+      renderAll();
+    };
+
+    window.moveOrder = function(id, direction) {
+      const list = getFilteredPerformers();
+      const idx = list.findIndex(p => p.id === id);
+      if (idx === -1) return;
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= list.length) return;
+
+      const a = ensureMeta(list[idx].id, idx + 1);
+      const b = ensureMeta(list[targetIdx].id, targetIdx + 1);
+
+      // If both have call numbers, swap their call numbers directly so calling order updates!
+      if (a.callNumber && b.callNumber) {
+        const tmpCall = a.callNumber;
+        a.callNumber = b.callNumber;
+        b.callNumber = tmpCall;
+      } else {
+        // Normalize ranks first
+        list.forEach((p, i) => {
+          ensureMeta(p.id, i + 1).orderRank = (i + 1) * 10;
+        });
+        const temp = a.orderRank;
+        a.orderRank = b.orderRank;
+        b.orderRank = temp;
+      }
+
+      renderAll();
+    };
+
+    window.toggleInlinePlayer = function(fileId) {
+      const el = document.getElementById(`inlinePlayer-${fileId}`);
+      if (el) el.classList.toggle("hidden");
+    };
+
+    window.downloadStandaloneHtml = function() {
+      const htmlContent = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+      const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "2026火神祭_自由舞台控台.html";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+
+    window.copyText = function(text) {
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+      } else {
+        fallbackCopy(text);
+      }
+    };
+
+    function fallbackCopy(text) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+
+    // =========================================================================
+    // 7. LIVE GOOGLE SPREADSHEET JSONP SYNC (BYPASSES CORS IN BROWSER)
+    // =========================================================================
+    window.__handleFiremosaSheetResponse = function(response) {
+      try {
+        if (!response || response.status !== "ok" || !response.table || !response.table.rows) {
+          return;
+        }
+        const rows = response.table.rows;
+        const parsedRows = [];
+
+        rows.forEach((r, idx) => {
+          const c = r.c || [];
+          const getVal = (i) => (c[i] && (c[i].f || c[i].v) ? String(c[i].f || c[i].v).trim() : "");
+
+          const timestamp = getVal(0);
+          const dates = getVal(1);
+          const stageName = getVal(2);
+          // Skip header row if returned
+          if (!stageName || stageName.includes("演出名稱") || timestamp.includes("時間戳記")) {
+            return;
+          }
+
+          const rowId = `row-${idx + 1}`;
+          const sheetCallNum = getVal(16); // Q欄: 報到叫號
+          const sheetUsePhone = getVal(17); // R欄: 手機播放
+          const sheetStatus = getVal(18); // S欄: 演出狀態
+          const meta = ensureMeta(rowId, idx + 1);
+          if (sheetCallNum && !isNaN(parseInt(sheetCallNum, 10))) {
+            meta.callNumber = parseInt(sheetCallNum, 10);
+            if (meta.status === "waiting") meta.status = "checked_in";
+          }
+          if (sheetUsePhone) {
+            const up = sheetUsePhone.toLowerCase();
+            if (up.includes("是") || up.includes("手機") || up === "true" || up === "1" || up === "v" || up === "y") {
+              meta.usePhone = true;
+            } else if (up.includes("否") || up.includes("音控") || up === "false" || up === "0") {
+              meta.usePhone = false;
+            }
+          }
+          if (sheetStatus) {
+            if (sheetStatus.includes("完") || sheetStatus.toLowerCase() === "done") meta.status = "done";
+            else if (sheetStatus.includes("報到")) meta.status = "checked_in";
+          }
+          parsedRows.push({
+            id: rowId,
+            timestamp,
+            dates,
+            stageName,
+            contactName: getVal(3),
+            mobile: getVal(4),
+            instagram: getVal(5),
+            count: getVal(6),
+            props: getVal(8),
+            length: getVal(10),
+            fuel: getVal(11) || getVal(12),
+            music: getVal(13),
+            intro: getVal(14)
+          });
+        });
+
+        // Merge duplicate 阿金 music & intro automatically if row-6 & row-8 match
+        if (parsedRows.length >= 8) {
+          const r6 = parsedRows.find(p => p.id === "row-6");
+          const r8 = parsedRows.find(p => p.id === "row-8");
+          if (r6 && r8 && r6.stageName === "阿金" && r8.stageName === "阿金") {
+            if (!r6.intro && r8.intro) r6.intro = r8.intro;
+            if (!r6.props) r6.props = "火雙節棍";
+          }
+        }
+
+        if (parsedRows.length > 0) {
+          const oldNonWalkInCount = state.performers.filter(p => !p.id.startsWith("walkin-")).length;
+          const walkIns = state.performers.filter(p => p.id.startsWith("walkin-"));
+          state.performers = [...parsedRows, ...walkIns];
+
+          if (parsedRows.length > oldNonWalkInCount) {
+            document.getElementById("newRegToast").classList.remove("hidden");
+          }
+
+          const nowStr = new Date().toLocaleTimeString("zh-TW", { hour12: false });
+          document.getElementById("lastSyncTime").textContent = nowStr;
+          document.getElementById("syncStatusText").textContent = `雲端即時同步 (${parsedRows.length}筆)`;
+          renderAll();
+        }
+      } catch (err) {
+        // Keep current cached data cleanly
+      }
+    };
+
+    function fetchGoogleSheetLive() {
+      const sheetId = (state.sheetId || "").trim();
+      if (!sheetId) return;
+
+      const syncBtn = document.getElementById("syncNowBtn");
+      syncBtn.textContent = "同步中...";
+
+      // Remove previous JSONP script tag
+      const oldScript = document.getElementById("gvizJsonpScript");
+      if (oldScript) oldScript.remove();
+
+      const script = document.createElement("script");
+      script.id = "gvizJsonpScript";
+      const tqx = "responseHandler:__handleFiremosaSheetResponse";
+      script.src = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheetId)}/gviz/tq?tqx=${encodeURIComponent(tqx)}&_=${Date.now()}`;
+
+      script.onload = () => {
+        syncBtn.textContent = "立即刷新";
+      };
+      script.onerror = () => {
+        syncBtn.textContent = "立即刷新";
+        const nowStr = new Date().toLocaleTimeString("zh-TW", { hour12: false });
+        document.getElementById("lastSyncTime").textContent = nowStr;
+      };
+
+      document.body.appendChild(script);
+    }
+
+    // =========================================================================
+    // 8. UTILITIES & EVENT LISTENERS
+    // =========================================================================
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function escapeJs(str) {
+      return String(str || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+    }
+
+    function formatTimer(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    }
+
+    function initEventListeners() {
+      // View Mode buttons
+      document.getElementById("modeSplitBtn").addEventListener("click", () => {
+        state.viewMode = "split";
+        renderAll();
+      });
+      document.getElementById("modeMcBtn").addEventListener("click", () => {
+        state.viewMode = "mc";
+        renderAll();
+      });
+      document.getElementById("modeSoundBtn").addEventListener("click", () => {
+        state.viewMode = "sound";
+        renderAll();
+      });
+
+      // Date filter pills
+      document.querySelectorAll(".date-filter-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.selectedDate = btn.getAttribute("data-date");
+          state.activePerformerId = null;
+          renderAll();
+        });
+      });
+
+      // Next / Prev performer buttons
+      document.getElementById("completeAndNextBtn").addEventListener("click", () => {
+        const { pending } = getActiveQueue();
+        if (pending.length === 0) return;
+        const currId = state.activePerformerId || pending[0].id;
+        ensureMeta(currId, 0).status = "done";
+
+        const updatedPending = getActiveQueue().pending;
+        state.activePerformerId = updatedPending[0] ? updatedPending[0].id : null;
+
+        // Reset stage timer automatically for the new performer
+        state.timerSeconds = 0;
+        state.timerRunning = false;
+        document.getElementById("stageTimerDisplay").textContent = "00:00";
+        document.getElementById("timerStartPauseBtn").textContent = "開始";
+
+        renderAll();
+      });
+
+      document.getElementById("prevPerformerBtn").addEventListener("click", () => {
+        const { allForDate } = getActiveQueue();
+        if (allForDate.length === 0) return;
+        const idx = allForDate.findIndex(p => p.id === state.activePerformerId);
+        if (idx > 0) {
+          const prev = allForDate[idx - 1];
+          ensureMeta(prev.id, 0).status = "checked_in";
+          state.activePerformerId = prev.id;
+          renderAll();
+        }
+      });
+
+      // Copy current intro
+      document.getElementById("copyCurrentIntroBtn").addEventListener("click", () => {
+        const txt = document.getElementById("currentIntroText").textContent;
+        window.copyText(txt);
+        const btn = document.getElementById("copyCurrentIntroBtn");
+        btn.textContent = "✓ 已複製";
+        setTimeout(() => { btn.textContent = "複製介紹詞"; }, 1500);
+      });
+
+      // Search, Only Checked-in, & Hide Done
+      document.getElementById("searchInput").addEventListener("input", (e) => {
+        state.searchQuery = e.target.value;
+        renderQueueTable();
+      });
+
+      document.getElementById("onlyCheckedInToggle").addEventListener("change", (e) => {
+        state.onlyCheckedInQueue = e.target.checked;
+        state.activePerformerId = null;
+        renderAll();
+      });
+
+      document.getElementById("hideDoneToggle").addEventListener("change", (e) => {
+        state.hideDone = e.target.checked;
+        renderQueueTable();
+      });
+
+      // Sort Checked-in & Call Number First
+      document.getElementById("sortCheckedInFirstBtn").addEventListener("click", () => {
+        const list = getFilteredPerformers();
+        const weight = (st) => st === "checked_in" ? 1 : (st === "waiting" ? 2 : 3);
+        list.sort((a, b) => {
+          const ma = ensureMeta(a.id, 0);
+          const mb = ensureMeta(b.id, 0);
+          const wa = weight(ma.status);
+          const wb = weight(mb.status);
+          if (wa !== wb) return wa - wb;
+          return comparePerformers(a, b);
+        });
+        list.forEach((p, idx) => {
+          ensureMeta(p.id, idx + 1).orderRank = (idx + 1) * 10;
+        });
+        state.activePerformerId = null;
+        renderAll();
+      });
+
+      // Manual Sync Now
+      document.getElementById("syncNowBtn").addEventListener("click", () => {
+        state.countdownSec = state.refreshIntervalSec;
+        fetchGoogleSheetLive();
+      });
+
+      // Toggle Auto Sync
+      document.getElementById("toggleAutoSyncBtn").addEventListener("click", () => {
+        if (state.refreshIntervalSec > 0) {
+          state.refreshIntervalSec = 0;
+          document.getElementById("autoSyncBtnLabel").textContent = "自動刷新: 暫停";
+          document.getElementById("countdownText").textContent = "已暫停";
+        } else {
+          state.refreshIntervalSec = 10;
+          state.countdownSec = 10;
+          document.getElementById("autoSyncBtnLabel").textContent = "自動刷新: 10秒";
+        }
+      });
+
+      // Stage Stopwatch
+      document.getElementById("timerStartPauseBtn").addEventListener("click", () => {
+        state.timerRunning = !state.timerRunning;
+        document.getElementById("timerStartPauseBtn").textContent = state.timerRunning ? "暫停" : "繼續";
+      });
+      document.getElementById("timerResetBtn").addEventListener("click", () => {
+        state.timerRunning = false;
+        state.timerSeconds = 0;
+        document.getElementById("stageTimerDisplay").textContent = "00:00";
+        document.getElementById("timerStartPauseBtn").textContent = "開始";
+      });
+
+      // Modal open/close
+      const modal = document.getElementById("settingsModal");
+      document.getElementById("openSettingsBtn").addEventListener("click", () => modal.classList.remove("hidden"));
+      document.getElementById("addWalkInBtn").addEventListener("click", () => {
+        modal.classList.remove("hidden");
+        document.getElementById("walkInStageName").focus();
+      });
+      document.getElementById("closeSettingsBtn").addEventListener("click", () => modal.classList.add("hidden"));
+
+      // Save sheet config
+      document.getElementById("saveSheetConfigBtn").addEventListener("click", () => {
+        const rawInput = document.getElementById("sheetIdInput").value.trim();
+        const match = rawInput.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        state.sheetId = match ? match[1] : rawInput;
+        state.refreshIntervalSec = Number(document.getElementById("refreshIntervalSelect").value);
+        state.countdownSec = state.refreshIntervalSec;
+        document.getElementById("modalIntervalText").textContent = state.refreshIntervalSec || "手動";
+        document.getElementById("autoSyncBtnLabel").textContent = state.refreshIntervalSec > 0 ? `自動刷新: ${state.refreshIntervalSec}秒` : "自動刷新: 暫停";
+        document.getElementById("rawSheetLink").href = `https://docs.google.com/spreadsheets/d/${state.sheetId}/edit`;
+        modal.classList.add("hidden");
+        fetchGoogleSheetLive();
+      });
+
+      // Walk-in form submit
+      document.getElementById("walkInForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const stageName = document.getElementById("walkInStageName").value.trim();
+        if (!stageName) return;
+        const contactRaw = document.getElementById("walkInContact").value.trim();
+        const [contactName, props] = contactRaw.includes("｜") ? contactRaw.split("｜") : [contactRaw || stageName, ""];
+        const music = document.getElementById("walkInMusic").value.trim();
+        const dates = document.getElementById("walkInDate").value;
+        const intro = document.getElementById("walkInIntro").value.trim();
+        const customCallRaw = document.getElementById("walkInCallNum").value.trim();
+        const usePhone = document.getElementById("walkInUsePhone").value === "true";
+
+        const assignedCall = customCallRaw ? parseInt(customCallRaw, 10) : getNextAvailableCallNumber();
+
+        const newId = `walkin-${Date.now()}`;
+        const newPerf = {
+          id: newId,
+          timestamp: new Date().toLocaleTimeString("zh-TW", { hour12: false }) + " (現場加報)",
+          dates,
+          stageName,
+          contactName: contactName.trim(),
+          mobile: "",
+          instagram: "",
+          count: "1 人",
+          props: (props || "").trim(),
+          length: "",
+          fuel: "",
+          music,
+          intro
+        };
+
+        state.performers.push(newPerf);
+        state.localMeta[newId] = {
+          status: "checked_in",
+          orderRank: state.performers.length * 10,
+          callNumber: assignedCall,
+          usePhone: usePhone,
+          soundNote: ""
+        };
+
+        document.getElementById("walkInForm").reset();
+        modal.classList.add("hidden");
+        renderAll();
+      });
+
+      // Reset local state
+      document.getElementById("resetLocalStateBtn").addEventListener("click", () => {
+        try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+        state.localMeta = { "row-8": { status: "skipped", orderRank: 999, callNumber: null, usePhone: false, soundNote: "" } };
+        state.performers = [...INITIAL_PERFORMERS];
+        state.activePerformerId = null;
+        modal.classList.add("hidden");
+        renderAll();
+        fetchGoogleSheetLive();
+      });
+
+      // Toast dismiss
+      document.getElementById("dismissToastBtn").addEventListener("click", () => {
+        document.getElementById("newRegToast").classList.add("hidden");
+      });
+    }
+
+    // =========================================================================
+    // 9. MAIN TICK LOOP (AUTO-REFRESH + STAGE TIMER)
+    // =========================================================================
+    let mainIntervalId = null;
+    function startMainLoop() {
+      if (mainIntervalId) clearInterval(mainIntervalId);
+      mainIntervalId = setInterval(() => {
+        // Stage stopwatch
+        if (state.timerRunning) {
+          state.timerSeconds++;
+          const timerEl = document.getElementById("stageTimerDisplay");
+          timerEl.textContent = formatTimer(state.timerSeconds);
+          // Highlight red if over 5 mins (300s)
+          if (state.timerSeconds >= 300) {
+            timerEl.className = "font-mono text-sm font-black text-rose-400 animate-pulse";
+          } else {
+            timerEl.className = "font-mono text-sm font-bold text-amber-400";
+          }
+        }
+
+        // Auto-sync countdown
+        if (state.refreshIntervalSec > 0) {
+          state.countdownSec--;
+          if (state.countdownSec <= 0) {
+            state.countdownSec = state.refreshIntervalSec;
+            fetchGoogleSheetLive();
+          }
+          document.getElementById("countdownText").textContent = `${state.countdownSec}s`;
+        }
+      }, 1000);
+    }
+
+    // Boot
+    window.addEventListener("DOMContentLoaded", () => {
+      loadSavedState();
+      initEventListeners();
+      document.getElementById("lastSyncTime").textContent = new Date().toLocaleTimeString("zh-TW", { hour12: false });
+      document.getElementById("rawSheetLink").href = `https://docs.google.com/spreadsheets/d/${state.sheetId}/edit`;
+      renderAll();
+      startMainLoop();
+      // Trigger initial live pull from Google Sheet
+      fetchGoogleSheetLive();
+    });
+  </script>
+</body>
+</html>
